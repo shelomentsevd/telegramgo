@@ -8,17 +8,33 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"bufio"
+	"strings"
 )
 
 type Command struct {
 	Name      string
-	Arguments []string
+	Arguments string
 }
 
 // Reads user input and returns Command pointer
-func readCommand() *Command {
+func (cli * TelegramCLI) readCommand() * Command {
+	fmt.Printf("\nUser input: ")
+	input, err := cli.reader.ReadString('\n')
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	if input[0] != '\\' {
+		return nil
+	}
 	command := new(Command)
-
+	input = strings.TrimSpace(input)
+	args := strings.SplitN(input, " ", 2)
+	command.Name = strings.ToLower(strings.Replace(args[0], "\\", "", 1))
+	if len(args) > 1 {
+		command.Arguments = args[1]
+	}
 	return command
 }
 
@@ -27,18 +43,19 @@ func help() {
 	fmt.Println("Available commands:")
 	fmt.Println("\\auth <phone> - Authentication")
 	fmt.Println("\\contacts - Shows contacts list")
-	fmt.Println("\\msg <id> - Sends message to <id>")
+	fmt.Println("\\msg <id> <message> - Sends message to <id>")
 	fmt.Println("\\help - Shows this message")
 	fmt.Println("\\quit - Quit")
 }
 
-const updatePeriod = time.Second * 1
+const updatePeriod = time.Second * 5
 
 type TelegramCLI struct {
 	mtproto *mtproto.MTProto
 	state   mtproto.TL_updates_state
 	read chan struct{}
 	stop chan struct{}
+	reader * bufio.Reader
 }
 
 func NewTelegramCLI(mtproto *mtproto.MTProto) (*TelegramCLI, error) {
@@ -50,6 +67,7 @@ func NewTelegramCLI(mtproto *mtproto.MTProto) (*TelegramCLI, error) {
 	cli.mtproto = mtproto
 	cli.read = make(chan struct{}, 1)
 	cli.stop = make(chan struct{}, 1)
+	cli.reader = bufio.NewReader(os.Stdin)
 
 	return cli, nil
 }
@@ -81,7 +99,7 @@ func (cli *TelegramCLI) Run() error {
 	for {
 		select {
 		case <-cli.read:
-			command := readCommand()
+			command := cli.readCommand()
 			cli.RunCommand(command)
 		case <-cli.stop:
 			break UpdateCycle
@@ -95,11 +113,11 @@ func (cli *TelegramCLI) Run() error {
 
 // Get updates and prints result
 func (cli *TelegramCLI) processUpdates() {
-
+	fmt.Println("Update")
 }
 
 // Runs command and prints result to console
-func (cli *TelegramCLI) RunCommand(command *Command) error {
+func (cli *TelegramCLI) RunCommand(command * Command) error {
 	switch command.Name {
 	case "auth":
 	case "contacts":
