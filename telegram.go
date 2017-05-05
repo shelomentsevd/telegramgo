@@ -42,6 +42,7 @@ func (cli * TelegramCLI) readCommand() * Command {
 func help() {
 	fmt.Println("Available commands:")
 	fmt.Println("\\auth <phone> - Authentication")
+	fmt.Println("\\me - Shows information about current account")
 	fmt.Println("\\contacts - Shows contacts list")
 	fmt.Println("\\msg <id> <message> - Sends message to <id>")
 	fmt.Println("\\help - Shows this message")
@@ -72,13 +73,56 @@ func NewTelegramCLI(mtproto *mtproto.MTProto) (*TelegramCLI, error) {
 	return cli, nil
 }
 
+func (cli *TelegramCLI) Authorization() error {
+	var phonenumber string
+	fmt.Println("Enter phonenumber number below: ")
+	fmt.Scanln(&phonenumber)
+	if phonenumber == "" {
+		return fmt.Errorf("Phone number is empty")
+	}
+	err, sentCode := cli.mtproto.AuthSendCode(phonenumber)
+	if err != nil {
+		return err
+	}
+
+	if !sentCode.Phone_registered {
+		fmt.Errorf("Phone number isn't registered")
+	}
+
+	var code string
+	fmt.Printf("Enter code: ")
+	fmt.Scanf("%s", &code)
+	err, auth := cli.mtproto.AuthSignIn(phonenumber, code, sentCode.Phone_code_hash)
+	if err != nil {
+		return err
+	}
+
+	userSelf := auth.User.(mtproto.TL_user)
+	fmt.Printf("Signed in: Id %d name <%s @%s %s>\n", userSelf.Id, userSelf.First_name, userSelf.Username, userSelf.Last_name)
+
+	return nil
+}
+
+// Prints information about current user
+func (cli *TelegramCLI) CurrentUser() error {
+	err, userFull := cli.mtproto.UsersGetFullUsers(mtproto.TL_inputUserSelf{})
+	if err != nil {
+		return err
+	}
+
+	user := userFull.User.(mtproto.TL_user)
+
+	fmt.Printf("You are logged in as: %s @%s %s\nId: %d\nPhone: %s\n", user.First_name,  user.Username, user.Last_name, user.Id, user.Phone)
+
+	return nil
+}
+
 // Connect with telegram server and check user
 func (cli *TelegramCLI) Connect() error {
 	if err := cli.mtproto.Connect(); err != nil {
 		return err
 	}
 
-	// TODO: Check authorization
 	return nil
 }
 
@@ -120,6 +164,7 @@ func (cli *TelegramCLI) processUpdates() {
 func (cli *TelegramCLI) RunCommand(command * Command) error {
 	switch command.Name {
 	case "auth":
+	case "me":
 	case "contacts":
 	case "msg":
 	case "help":
@@ -162,6 +207,13 @@ func main() {
 		os.Exit(2)
 	}
 	fmt.Println("Welcome to telegram CLI")
+	if err := telegramCLI.CurrentUser(); err != nil {
+		err := telegramCLI.Authorization()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(2)
+		}
+	}
 	// Show help first time
 	help()
 	stop := make(chan struct{}, 1)
