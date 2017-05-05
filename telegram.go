@@ -178,7 +178,7 @@ func (cli *TelegramCLI) RunCommand(command * Command) error {
 }
 
 func main() {
-	const telegramAddress = "149.154.167.40:443"
+	const telegramAddress = "149.154.167.50:443"
 	// Application configuration
 	configuration, err := mtproto.NewConfiguration(41994,
 		"269069e15c81241f5670c397941016a2",
