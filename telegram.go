@@ -56,6 +56,7 @@ type TelegramCLI struct {
 	state   mtproto.TL_updates_state
 	read chan struct{}
 	stop chan struct{}
+	connected bool
 	reader * bufio.Reader
 }
 
@@ -114,11 +115,21 @@ func (cli *TelegramCLI) CurrentUser() error {
 	return nil
 }
 
-// Connect with telegram server and check user
+// Connects to telegram server
 func (cli *TelegramCLI) Connect() error {
 	if err := cli.mtproto.Connect(); err != nil {
 		return err
 	}
+	cli.connected = true
+	return nil
+}
+
+// Disconnect from telegram server
+func (cli *TelegramCLI) Disconnect() error {
+	if err := cli.mtproto.Disconnect(); err != nil {
+		return err
+	}
+	cli.connected = false
 
 	return nil
 }
@@ -141,7 +152,10 @@ func (cli *TelegramCLI) Run() error {
 		select {
 		case <-cli.read:
 			command := cli.readCommand()
-			cli.RunCommand(command)
+			err := cli.RunCommand(command)
+			if err != nil {
+				fmt.Println(err)
+			}
 		case <-cli.stop:
 			break UpdateCycle
 		case <-time.After(updatePeriod):
@@ -154,7 +168,9 @@ func (cli *TelegramCLI) Run() error {
 
 // Get updates and prints result
 func (cli *TelegramCLI) processUpdates() {
-
+	if !cli.connected {
+		return
+	}
 }
 
 // Runs command and prints result to console
