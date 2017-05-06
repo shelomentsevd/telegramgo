@@ -73,10 +73,7 @@ func NewTelegramCLI(mtproto *mtproto.MTProto) (*TelegramCLI, error) {
 	return cli, nil
 }
 
-func (cli *TelegramCLI) Authorization() error {
-	var phonenumber string
-	fmt.Println("Enter phonenumber number below: ")
-	fmt.Scanln(&phonenumber)
+func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	if phonenumber == "" {
 		return fmt.Errorf("Phone number is empty")
 	}
@@ -157,14 +154,25 @@ func (cli *TelegramCLI) Run() error {
 
 // Get updates and prints result
 func (cli *TelegramCLI) processUpdates() {
-	fmt.Println("Update")
+
 }
 
 // Runs command and prints result to console
 func (cli *TelegramCLI) RunCommand(command * Command) error {
 	switch command.Name {
 	case "auth":
+		if len(command.Arguments) == 0 {
+			return errors.New("Enter phone number")
+		}
+		err := cli.Authorization(command.Arguments)
+		if err != nil {
+			return err
+		}
 	case "me":
+		err := cli.CurrentUser()
+		if err != nil {
+			return err
+		}
 	case "contacts":
 	case "msg":
 	case "help":
@@ -208,7 +216,10 @@ func main() {
 	}
 	fmt.Println("Welcome to telegram CLI")
 	if err := telegramCLI.CurrentUser(); err != nil {
-		err := telegramCLI.Authorization()
+		var phonenumber string
+		fmt.Println("Enter phonenumber number below: ")
+		fmt.Scanln(&phonenumber)
+		err := telegramCLI.Authorization(phonenumber)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
