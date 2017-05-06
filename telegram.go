@@ -10,6 +10,8 @@ import (
 	"time"
 	"bufio"
 	"strings"
+	"strconv"
+	"math/rand"
 )
 
 type Command struct {
@@ -166,21 +168,36 @@ func (cli *TelegramCLI) Run() error {
 	return nil
 }
 
+// Parse update
+func (cli *TelegramCLI) parseUpdate(update mtproto.TL) {
+	// TODO: Parse update
+}
 // Get updates and prints result
 func (cli *TelegramCLI) processUpdates() {
 	if !cli.connected {
+		// TODO: Get updates
+		// update := GetUpdate()
+		// cli.parseUpdate(update)
 		return
 	}
 }
 
+// Returns peer from peerList
+func (cli *TelegramCLI) FindPeer(id int32) mtproto.TL {
+	var peer mtproto.TL
+	// TODO: Write search
+	return peer
+}
+
 // Runs command and prints result to console
 func (cli *TelegramCLI) RunCommand(command * Command) error {
+	var err error
 	switch command.Name {
 	case "auth":
-		if len(command.Arguments) == 0 {
+		if command.Arguments == "" {
 			return errors.New("Enter phone number")
 		}
-		err := cli.Authorization(command.Arguments)
+		err = cli.Authorization(command.Arguments)
 		if err != nil {
 			return err
 		}
@@ -191,6 +208,21 @@ func (cli *TelegramCLI) RunCommand(command * Command) error {
 		}
 	case "contacts":
 	case "msg":
+		if command.Arguments == "" {
+			return errors.New("Not enough arguments: peer id and msg required")
+		}
+		args := strings.SplitN(command.Arguments, " ", 2)
+		if len(args) < 2 {
+			return errors.New("Not enough arguments: peer id and msg required")
+		}
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			return fmt.Errorf("Wrong arguments: %s isn't a number", args[0])
+		}
+		var peer mtproto.TL
+		peer = cli.FindPeer(int32(id))
+		err, update := cli.mtproto.MessagesSendMessage(false, false, false, true, peer, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
+		cli.parseUpdate(*update)
 	case "help":
 		help()
 	case "quit":
