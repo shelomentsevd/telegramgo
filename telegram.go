@@ -1,17 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"math/rand"
 	"mtproto"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
-	"bufio"
-	"strings"
-	"strconv"
-	"math/rand"
 )
 
 const telegramAddress = "149.154.167.50:443"
@@ -23,7 +23,7 @@ type Command struct {
 }
 
 // Reads user input and returns Command pointer
-func (cli * TelegramCLI) readCommand() * Command {
+func (cli *TelegramCLI) readCommand() *Command {
 	fmt.Printf("\nUser input: ")
 	input, err := cli.reader.ReadString('\n')
 	if err != nil {
@@ -54,12 +54,12 @@ func help() {
 }
 
 type TelegramCLI struct {
-	mtproto *mtproto.MTProto
-	state   mtproto.TL_updates_state
-	read chan struct{}
-	stop chan struct{}
+	mtproto   *mtproto.MTProto
+	state     mtproto.TL_updates_state
+	read      chan struct{}
+	stop      chan struct{}
 	connected bool
-	reader * bufio.Reader
+	reader    *bufio.Reader
 }
 
 func NewTelegramCLI(mtproto *mtproto.MTProto) (*TelegramCLI, error) {
@@ -112,7 +112,7 @@ func (cli *TelegramCLI) CurrentUser() error {
 
 	user := userFull.User.(mtproto.TL_user)
 
-	fmt.Printf("You are logged in as: %s @%s %s\nId: %d\nPhone: %s\n", user.First_name,  user.Username, user.Last_name, user.Id, user.Phone)
+	fmt.Printf("You are logged in as: %s @%s %s\nId: %d\nPhone: %s\n", user.First_name, user.Username, user.Last_name, user.Id, user.Phone)
 
 	return nil
 }
@@ -149,7 +149,7 @@ func (cli *TelegramCLI) Read() {
 // Run telegram cli
 func (cli *TelegramCLI) Run() error {
 	// Update cycle
-	UpdateCycle:
+UpdateCycle:
 	for {
 		select {
 		case <-cli.read:
@@ -172,6 +172,7 @@ func (cli *TelegramCLI) Run() error {
 func (cli *TelegramCLI) parseUpdate(update mtproto.TL) {
 	// TODO: Parse update
 }
+
 // Get updates and prints result
 func (cli *TelegramCLI) processUpdates() {
 	if !cli.connected {
@@ -190,7 +191,7 @@ func (cli *TelegramCLI) FindPeer(id int32) mtproto.TL {
 }
 
 // Runs command and prints result to console
-func (cli *TelegramCLI) RunCommand(command * Command) error {
+func (cli *TelegramCLI) RunCommand(command *Command) error {
 	switch command.Name {
 	case "me":
 		err := cli.CurrentUser()
