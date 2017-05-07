@@ -14,6 +14,9 @@ import (
 	"math/rand"
 )
 
+const telegramAddress = "149.154.167.50:443"
+const updatePeriod = time.Second * 5
+
 type Command struct {
 	Name      string
 	Arguments string
@@ -43,15 +46,12 @@ func (cli * TelegramCLI) readCommand() * Command {
 // Show help
 func help() {
 	fmt.Println("Available commands:")
-	fmt.Println("\\auth <phone> - Authentication")
 	fmt.Println("\\me - Shows information about current account")
 	fmt.Println("\\contacts - Shows contacts list")
 	fmt.Println("\\msg <id> <message> - Sends message to <id>")
 	fmt.Println("\\help - Shows this message")
 	fmt.Println("\\quit - Quit")
 }
-
-const updatePeriod = time.Second * 5
 
 type TelegramCLI struct {
 	mtproto *mtproto.MTProto
@@ -191,16 +191,7 @@ func (cli *TelegramCLI) FindPeer(id int32) mtproto.TL {
 
 // Runs command and prints result to console
 func (cli *TelegramCLI) RunCommand(command * Command) error {
-	var err error
 	switch command.Name {
-	case "auth":
-		if command.Arguments == "" {
-			return errors.New("Enter phone number")
-		}
-		err = cli.Authorization(command.Arguments)
-		if err != nil {
-			return err
-		}
 	case "me":
 		err := cli.CurrentUser()
 		if err != nil {
@@ -227,6 +218,7 @@ func (cli *TelegramCLI) RunCommand(command * Command) error {
 		help()
 	case "quit":
 		cli.Stop()
+		cli.Disconnect()
 	default:
 		return errors.New("Unknow command")
 	}
@@ -234,7 +226,6 @@ func (cli *TelegramCLI) RunCommand(command * Command) error {
 }
 
 func main() {
-	const telegramAddress = "149.154.167.50:443"
 	// Application configuration
 	configuration, err := mtproto.NewConfiguration(41994,
 		"269069e15c81241f5670c397941016a2",
