@@ -86,7 +86,7 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	}
 
 	if !sentCode.Phone_registered {
-		fmt.Errorf("Phone number isn't registered")
+		return fmt.Errorf("Phone number isn't registered")
 	}
 
 	var code string
