@@ -80,7 +80,7 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	if phonenumber == "" {
 		return fmt.Errorf("Phone number is empty")
 	}
-	err, sentCode := cli.mtproto.AuthSendCode(phonenumber)
+	sentCode, err := cli.mtproto.AuthSendCode(phonenumber)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	var code string
 	fmt.Printf("Enter code: ")
 	fmt.Scanf("%s", &code)
-	err, auth := cli.mtproto.AuthSignIn(phonenumber, code, sentCode.Phone_code_hash)
+	auth, err := cli.mtproto.AuthSignIn(phonenumber, code, sentCode.Phone_code_hash)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 
 // Prints information about current user
 func (cli *TelegramCLI) CurrentUser() error {
-	err, userFull := cli.mtproto.UsersGetFullUsers(mtproto.TL_inputUserSelf{})
+	userFull, err := cli.mtproto.UsersGetFullUsers(mtproto.TL_inputUserSelf{})
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 		}
 		var peer mtproto.TL
 		peer = cli.FindPeer(int32(id))
-		err, update := cli.mtproto.MessagesSendMessage(false, false, false, true, peer, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
+		update, err := cli.mtproto.MessagesSendMessage(false, false, false, true, peer, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
 		cli.parseUpdate(*update)
 	case "help":
 		help()
