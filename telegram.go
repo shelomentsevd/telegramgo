@@ -190,15 +190,56 @@ func (cli *TelegramCLI) FindPeer(id int32) mtproto.TL {
 	return peer
 }
 
+// Print contact list
+func (cli *TelegramCLI) Contacts() error {
+	tl, err := cli.mtproto.ContactsGetContacts("")
+	if err != nil {
+		return err
+	}
+	list, ok := (*tl).(mtproto.TL_contacts_contacts)
+	if !ok {
+		return fmt.Errorf("RPC: %#v", tl)
+	}
+
+	contacts := make(map[int32]mtproto.TL_user)
+	for _, v := range list.Users {
+		if v, ok := v.(mtproto.TL_user); ok {
+			contacts[v.Id] = v
+		}
+	}
+	fmt.Printf(
+		"\033[33m\033[1m%10s    %10s    %-30s    %-20s\033[0m\n",
+		"id", "mutual", "name", "username",
+	)
+	for _, v := range  list.Contacts {
+		v := v.(mtproto.TL_contact)
+		mutual, err := mtproto.ToBool(v.Mutual)
+		if err != nil {
+			return err
+		}
+		fmt.Printf(
+			"%10d    %10t    %-30s    %-20s\n",
+			v.User_id,
+			mutual,
+			fmt.Sprintf("%s %s", contacts[v.User_id].First_name, contacts[v.User_id].Last_name),
+			contacts[v.User_id].Username,
+		)
+	}
+
+	return nil
+}
+
 // Runs command and prints result to console
 func (cli *TelegramCLI) RunCommand(command *Command) error {
 	switch command.Name {
 	case "me":
-		err := cli.CurrentUser()
-		if err != nil {
+		if err := cli.CurrentUser(); err != nil {
 			return err
 		}
 	case "contacts":
+		if err := cli.Contacts(); err != nil {
+			return err
+		}
 	case "msg":
 		if command.Arguments == "" {
 			return errors.New("Not enough arguments: peer id and msg required")
