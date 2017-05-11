@@ -55,7 +55,7 @@ func help() {
 
 type TelegramCLI struct {
 	mtproto   *mtproto.MTProto
-	state     mtproto.TL_updates_state
+	state     *mtproto.TL_updates_state
 	read      chan struct{}
 	stop      chan struct{}
 	connected bool
@@ -176,6 +176,26 @@ func (cli *TelegramCLI) parseUpdate(update mtproto.TL) {
 // Get updates and prints result
 func (cli *TelegramCLI) processUpdates() {
 	if !cli.connected {
+		if cli.state == nil {
+			tl, err := cli.mtproto.UpdatesGetState()
+			if err != nil {
+				// TODO: Write to logs
+				fmt.Println("processUpdates: failed to get current state error: ", err)
+				os.Exit(2)
+			}
+			state, ok := (*tl).(mtproto.TL_updates_state)
+			if !ok {
+				fmt.Println("processUpdates: failed to get current state: API returns wrong type: ", ok)
+				os.Exit(2)
+			}
+			cli.state = &state
+			return
+		}
+		tl, err := cli.mtproto.UpdatesGetDifference(cli.state.Pts, cli.state.Unread_count, cli.state.Date, cli.state.Qts)
+		if err != nil {
+			fmt.Println("processUpdates: failed to get update error: ", err)
+			return
+		}
 		// TODO: Get updates
 		// update := GetUpdate()
 		// cli.parseUpdate(update)
