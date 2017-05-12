@@ -168,9 +168,32 @@ UpdateCycle:
 	return nil
 }
 
+// Works with mtproto.TL_updates_difference and mtproto.TL_updates_differenceSlice
+func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []mtproto.TL)  {
+
+}
+
 // Parse update
 func (cli *TelegramCLI) parseUpdate(update mtproto.TL) {
-	// TODO: Parse update
+	switch update.(type) {
+	case mtproto.TL_updates_differenceEmpty:
+		diff, _ := update.(mtproto.TL_updates_differenceEmpty)
+		cli.state.Date = diff.Date
+		cli.state.Seq = diff.Seq
+	case mtproto.TL_updates_difference:
+		diff, _ := update.(mtproto.TL_updates_difference)
+		state, _ := diff.State.(mtproto.TL_updates_state)
+		cli.state = &state
+		cli.parseUpdateDifference(diff.Users, diff.New_messages, diff.Chats, diff.Other_updates)
+	case mtproto.TL_updates_differenceSlice:
+		diff, _ := update.(mtproto.TL_updates_differenceSlice)
+		state, _ := diff.Intermediate_state.(mtproto.TL_updates_state)
+		cli.state = &state
+		cli.parseUpdateDifference(diff.Users, diff.New_messages, diff.Chats, diff.Other_updates)
+	case mtproto.TL_updates_differenceTooLong:
+		diff, _ := update.(mtproto.TL_updates_differenceTooLong)
+		cli.state.Pts = diff.Pts
+	}
 }
 
 // Get updates and prints result
@@ -196,9 +219,7 @@ func (cli *TelegramCLI) processUpdates() {
 			fmt.Println("processUpdates: failed to get update error: ", err)
 			return
 		}
-		// TODO: Get updates
-		// update := GetUpdate()
-		// cli.parseUpdate(update)
+		cli.parseUpdate(*tl)
 		return
 	}
 }
