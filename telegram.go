@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"encoding/json"
 )
 
 const telegramAddress = "149.154.167.50:443"
@@ -60,18 +61,21 @@ type TelegramCLI struct {
 	stop      chan struct{}
 	connected bool
 	reader    *bufio.Reader
+	users     map[int32]mtproto.TL_user
+	chats     map[int32]mtproto.TL_chat
 }
 
 func NewTelegramCLI(mtproto *mtproto.MTProto) (*TelegramCLI, error) {
 	if mtproto == nil {
 		return nil, errors.New("NewTelegramCLI: mtproto is nil")
 	}
-
 	cli := new(TelegramCLI)
 	cli.mtproto = mtproto
 	cli.read = make(chan struct{}, 1)
 	cli.stop = make(chan struct{}, 1)
 	cli.reader = bufio.NewReader(os.Stdin)
+	cli.users = make(map[int32]mtproto.TL_user)
+	cli.chats = make(map[int32]mtproto.TL_chat)
 
 	return cli, nil
 }
@@ -170,7 +174,43 @@ UpdateCycle:
 
 // Works with mtproto.TL_updates_difference and mtproto.TL_updates_differenceSlice
 func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []mtproto.TL)  {
+	// Process users
 
+	for _, user := range users {
+		user, ok := user.(mtproto.TL_user)
+		if !ok {
+			// TODO: Debug logs
+			fmt.Printf("Wrong user type: %T\n", user)
+		}
+		cli.users[user.Id] = user
+	}
+	// Process chats
+	for _, chat := range chats {
+		chat, ok := chat.(mtproto.TL_chat)
+		if !ok {
+			fmt.Printf("Wrong  chat type: %T\n", chat)
+		}
+		cli.chats[chat.Id] = chat
+	}
+	// Process messages
+	for _, message := range messages {
+		message, ok := message.(mtproto.TL_message)
+		if !ok {
+			fmt.Printf("Wrong message type: %T", message)
+		}
+	}
+	// Process updates
+	for _, update := range updates {
+		switch update.(type) {
+		case mtproto.TL_updateNewMessage:
+		case mtproto.TL_updateNewChannelMessage:
+		case mtproto.TL_updateEditMessage:
+		case mtproto.TL_updateEditChannelMessage:
+		default:
+			// TODO: Debug only
+			fmt.Printf("Update type: %T\n", update)
+		}
+	}
 }
 
 // Parse update
