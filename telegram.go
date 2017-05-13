@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"encoding/json"
+	"telegramgo/logger"
 )
 
 const telegramAddress = "149.154.167.50:443"
@@ -65,12 +65,12 @@ type TelegramCLI struct {
 	chats     map[int32]mtproto.TL_chat
 }
 
-func NewTelegramCLI(mtproto *mtproto.MTProto) (*TelegramCLI, error) {
-	if mtproto == nil {
-		return nil, errors.New("NewTelegramCLI: mtproto is nil")
+func NewTelegramCLI(pMTProto *mtproto.MTProto) (*TelegramCLI, error) {
+	if pMTProto == nil {
+		return nil, errors.New("NewTelegramCLI: pMTProto is nil")
 	}
 	cli := new(TelegramCLI)
-	cli.mtproto = mtproto
+	cli.mtproto = pMTProto
 	cli.read = make(chan struct{}, 1)
 	cli.stop = make(chan struct{}, 1)
 	cli.reader = bufio.NewReader(os.Stdin)
@@ -102,7 +102,10 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	}
 
 	userSelf := auth.User.(mtproto.TL_user)
-	fmt.Printf("Signed in: Id %d name <%s @%s %s>\n", userSelf.Id, userSelf.First_name, userSelf.Username, userSelf.Last_name)
+	message := fmt.Sprintf("Signed in: Id %d name <%s @%s %s>\n", userSelf.Id, userSelf.First_name, userSelf.Username, userSelf.Last_name)
+	fmt.Print(message)
+	logger.Info(message)
+	logger.LogStruct(userSelf)
 
 	return nil
 }
@@ -116,7 +119,10 @@ func (cli *TelegramCLI) CurrentUser() error {
 
 	user := userFull.User.(mtproto.TL_user)
 
-	fmt.Printf("You are logged in as: %s @%s %s\nId: %d\nPhone: %s\n", user.First_name, user.Username, user.Last_name, user.Id, user.Phone)
+	message := fmt.Sprintf("You are logged in as: %s @%s %s\nId: %d\nPhone: %s\n", user.First_name, user.Username, user.Last_name, user.Id, user.Phone)
+	fmt.Print(message)
+	logger.Info(message)
+	logger.LogStruct(*userFull)
 
 	return nil
 }
@@ -127,6 +133,7 @@ func (cli *TelegramCLI) Connect() error {
 		return err
 	}
 	cli.connected = true
+	logger.Info("Connected to telegram server")
 	return nil
 }
 
@@ -136,7 +143,7 @@ func (cli *TelegramCLI) Disconnect() error {
 		return err
 	}
 	cli.connected = false
-
+	logger.Info("Disconnected from telegram server")
 	return nil
 }
 
@@ -153,22 +160,27 @@ func (cli *TelegramCLI) Read() {
 // Run telegram cli
 func (cli *TelegramCLI) Run() error {
 	// Update cycle
+	logger.Info("CLI Update cycle started")
 UpdateCycle:
 	for {
 		select {
 		case <-cli.read:
 			command := cli.readCommand()
+			logger.Info("User input: ")
+			logger.LogStruct(*command)
 			err := cli.RunCommand(command)
 			if err != nil {
-				fmt.Println(err)
+				logger.Error(err)
 			}
 		case <-cli.stop:
+			logger.Info("Update cycle stoped")
 			break UpdateCycle
 		case <-time.After(updatePeriod):
+			logger.Info("Trying to get update from server...")
+			cli.processUpdates()
 		}
-		cli.processUpdates()
 	}
-
+	logger.Info("CLI Update cycle finished")
 	return nil
 }
 
@@ -208,7 +220,9 @@ func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []
 		case mtproto.TL_updateEditChannelMessage:
 		default:
 			// TODO: Debug only
-			fmt.Printf("Update type: %T\n", update)
+			log := fmt.Sprintf("Update type: %T\n", update)
+			logger.Info(log)
+			logger.LogStruct(update)
 		}
 	}
 }
@@ -238,17 +252,20 @@ func (cli *TelegramCLI) parseUpdate(update mtproto.TL) {
 
 // Get updates and prints result
 func (cli *TelegramCLI) processUpdates() {
-	if !cli.connected {
+	if cli.connected {
 		if cli.state == nil {
+			logger.Info("cli.state is nil. Trying to get actual state...")
 			tl, err := cli.mtproto.UpdatesGetState()
 			if err != nil {
-				// TODO: Write to logs
-				fmt.Println("processUpdates: failed to get current state error: ", err)
+				logger.Error(err)
 				os.Exit(2)
 			}
+			logger.Info("Got something")
+			logger.LogStruct(*tl)
 			state, ok := (*tl).(mtproto.TL_updates_state)
 			if !ok {
-				fmt.Println("processUpdates: failed to get current state: API returns wrong type: ", ok)
+				err := fmt.Errorf("Failed to get current state: API returns wrong type: %T", *tl)
+				logger.Error(err)
 				os.Exit(2)
 			}
 			cli.state = &state
@@ -256,9 +273,11 @@ func (cli *TelegramCLI) processUpdates() {
 		}
 		tl, err := cli.mtproto.UpdatesGetDifference(cli.state.Pts, cli.state.Unread_count, cli.state.Date, cli.state.Qts)
 		if err != nil {
-			fmt.Println("processUpdates: failed to get update error: ", err)
+			logger.Error(err)
 			return
 		}
+		logger.Info("Got new update")
+		logger.LogStruct(*tl)
 		cli.parseUpdate(*tl)
 		return
 	}
@@ -349,6 +368,7 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 }
 
 func main() {
+	logger.Info("Program started")
 	// Application configuration
 	configuration, err := mtproto.NewConfiguration(41994,
 		"269069e15c81241f5670c397941016a2",
@@ -357,23 +377,23 @@ func main() {
 		"",
 		"")
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		os.Exit(2)
 	}
 
 	// Initialization
 	mtproto, err := mtproto.NewMTProto(false, telegramAddress, os.Getenv("HOME")+"/.telegramgo", *configuration)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		os.Exit(2)
 	}
 	telegramCLI, err := NewTelegramCLI(mtproto)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		os.Exit(2)
 	}
 	if err = telegramCLI.Connect(); err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		os.Exit(2)
 	}
 	fmt.Println("Welcome to telegram CLI")
@@ -383,7 +403,7 @@ func main() {
 		fmt.Scanln(&phonenumber)
 		err := telegramCLI.Authorization(phonenumber)
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err)
 			os.Exit(2)
 		}
 	}
@@ -406,6 +426,7 @@ func main() {
 
 	err = telegramCLI.Run()
 	if err != nil {
+		logger.Error(err)
 		fmt.Println("Telegram CLI exits with error: ", err)
 	}
 	// Stop SignalProcessing goroutine
