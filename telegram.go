@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 	"telegramgo/logger"
+	"time"
 )
 
 const telegramAddress = "149.154.167.50:443"
@@ -102,6 +102,7 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	}
 
 	userSelf := auth.User.(mtproto.TL_user)
+	cli.users[userSelf.Id] = userSelf
 	message := fmt.Sprintf("Signed in: Id %d name <%s @%s %s>\n", userSelf.Id, userSelf.First_name, userSelf.Username, userSelf.Last_name)
 	fmt.Print(message)
 	logger.Info(message)
@@ -118,6 +119,7 @@ func (cli *TelegramCLI) CurrentUser() error {
 	}
 
 	user := userFull.User.(mtproto.TL_user)
+	cli.users[user.Id] = user
 
 	message := fmt.Sprintf("You are logged in as: %s @%s %s\nId: %d\nPhone: %s\n", user.First_name, user.Username, user.Last_name, user.Id, user.Phone)
 	fmt.Print(message)
@@ -184,10 +186,60 @@ UpdateCycle:
 	return nil
 }
 
-// Works with mtproto.TL_updates_difference and mtproto.TL_updates_differenceSlice
-func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []mtproto.TL)  {
-	// Process users
+// Parse message and print to screen
+func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
+	switch message.(type) {
+	case mtproto.TL_messageEmpty:
+		logger.Info("Empty message")
+		logger.LogStruct(message)
+	case mtproto.TL_message:
+		logger.Info("Got new message")
+		logger.LogStruct(message)
+		message, _ := message.(mtproto.TL_message)
+		var senderName string
+		from := message.From_id
+		userFrom, found := cli.users[from]
+		if !found {
+			info := fmt.Sprintf("Can't find user with id: %d", from)
+			logger.Info(info)
+			senderName = fmt.Sprintf("%d unknow user", from)
+		}
+		senderName = nickname(userFrom)
+		toPeer := message.To_id
+		date := formatDate(message.Date)
 
+		// Peer type
+		switch toPeer.(type) {
+		case mtproto.TL_peerUser:
+			peerUser := toPeer.(mtproto.TL_peerUser)
+			user, found := cli.users[peerUser.User_id]
+			if !found {
+				info := fmt.Sprintf("Can't find user with id: %d", peerUser.User_id)
+				logger.Info(info)
+				// TODO: Get information about user from telegram server
+			}
+			peerName := nickname(user)
+			message := fmt.Sprintf("%s %d %s to %s", date, message.Id, senderName, peerName)
+			fmt.Println(message)
+		case mtproto.TL_peerChat:
+			peerChat := toPeer.(mtproto.TL_peerChat)
+		case mtproto.TL_peerChannel:
+			peerChannel := toPeer.(mtproto.TL_peerChannel)
+		default:
+			info := fmt.Sprintf("Unknown peer type: %T", toPeer)
+			logger.Info(info)
+			logger.LogStruct(toPeer)
+		}
+	default:
+		info := fmt.Sprintf("Unknown message type: %T", message)
+		logger.Info(info)
+		logger.LogStruct(message)
+	}
+}
+
+// Works with mtproto.TL_updates_difference and mtproto.TL_updates_differenceSlice
+func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []mtproto.TL) {
+	// Process users
 	for _, user := range users {
 		user, ok := user.(mtproto.TL_user)
 		if !ok {
@@ -206,10 +258,7 @@ func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []
 	}
 	// Process messages
 	for _, message := range messages {
-		message, ok := message.(mtproto.TL_message)
-		if !ok {
-			fmt.Printf("Wrong message type: %T", message)
-		}
+		cli.parseMessage(message)
 	}
 	// Process updates
 	for _, update := range updates {
@@ -311,7 +360,7 @@ func (cli *TelegramCLI) Contacts() error {
 		"\033[33m\033[1m%10s    %10s    %-30s    %-20s\033[0m\n",
 		"id", "mutual", "name", "username",
 	)
-	for _, v := range  list.Contacts {
+	for _, v := range list.Contacts {
 		v := v.(mtproto.TL_contact)
 		mutual, err := mtproto.ToBool(v.Mutual)
 		if err != nil {
