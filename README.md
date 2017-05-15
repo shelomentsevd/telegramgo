@@ -2,7 +2,11 @@
 
 Command-line interface for Telegram. Uses readline interface.
 
-# Instalation
+# Build
+## Release
+make
+## Debug
+make debug
 
 # Commands
 
