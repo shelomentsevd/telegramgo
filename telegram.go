@@ -231,7 +231,7 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 				info := fmt.Sprintf("Can't find chat with id: %d", peerChat.Chat_id)
 				logger.Info(info)
 			}
-			message := fmt.Sprintf("%s %d %s in %s: %s", date, message.Id, senderName, chat.Title, message.Message)
+			message := fmt.Sprintf("%s %d %s in %s(%d): %s", date, message.Id, senderName, chat.Title, chat.Id, message.Message)
 			fmt.Println(message)
 		case mtproto.TL_peerChannel:
 			peerChannel := toPeer.(mtproto.TL_peerChannel)
@@ -240,7 +240,7 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 				info := fmt.Sprintf("Can't find channel with id: %d", peerChannel.Channel_id)
 				logger.Info(info)
 			}
-			message := fmt.Sprintf("%s %d %s in %s: %s", date, message.Id, senderName, channel.Title, message.Message)
+			message := fmt.Sprintf("%s %d %s in %s(%d): %s", date, message.Id, senderName, channel.Title, channel.Id, message.Message)
 			fmt.Println(message)
 		default:
 			info := fmt.Sprintf("Unknown peer type: %T", toPeer)
