@@ -16,7 +16,7 @@ import (
 )
 
 const telegramAddress = "149.154.167.50:443"
-const updatePeriod = time.Second * 5
+const updatePeriod = time.Second * 2
 
 type Command struct {
 	Name      string
@@ -63,6 +63,7 @@ type TelegramCLI struct {
 	reader    *bufio.Reader
 	users     map[int32]mtproto.TL_user
 	chats     map[int32]mtproto.TL_chat
+	channels  map[int32]mtproto.TL_channel
 }
 
 func NewTelegramCLI(pMTProto *mtproto.MTProto) (*TelegramCLI, error) {
@@ -76,6 +77,7 @@ func NewTelegramCLI(pMTProto *mtproto.MTProto) (*TelegramCLI, error) {
 	cli.reader = bufio.NewReader(os.Stdin)
 	cli.users = make(map[int32]mtproto.TL_user)
 	cli.chats = make(map[int32]mtproto.TL_chat)
+	cli.channels = make(map[int32]mtproto.TL_channel)
 
 	return cli, nil
 }
@@ -219,12 +221,26 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 				// TODO: Get information about user from telegram server
 			}
 			peerName := nickname(user)
-			message := fmt.Sprintf("%s %d %s to %s", date, message.Id, senderName, peerName)
+			message := fmt.Sprintf("%s %d %s to %s: %s", date, message.Id, senderName, peerName, message.Message)
 			fmt.Println(message)
 		case mtproto.TL_peerChat:
 			peerChat := toPeer.(mtproto.TL_peerChat)
+			chat, found := cli.chats[peerChat.Chat_id]
+			if !found {
+				info := fmt.Sprintf("Can't find chat with id: %d", peerChat.Chat_id)
+				logger.Info(info)
+			}
+			message := fmt.Sprintf("%s %d %s in %s: %s", date, message.Id, senderName, chat.Title, message.Message)
+			fmt.Println(message)
 		case mtproto.TL_peerChannel:
 			peerChannel := toPeer.(mtproto.TL_peerChannel)
+			channel, found := cli.channels[peerChannel.Channel_id]
+			if !found {
+				info := fmt.Sprintf("Can't find channel with id: %d", peerChannel.Channel_id)
+				logger.Info(info)
+			}
+			message := fmt.Sprintf("%s %d %s in %s: %s", date, message.Id, senderName, channel.Title, message.Message)
+			fmt.Println(message)
 		default:
 			info := fmt.Sprintf("Unknown peer type: %T", toPeer)
 			logger.Info(info)
@@ -240,21 +256,26 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 // Works with mtproto.TL_updates_difference and mtproto.TL_updates_differenceSlice
 func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []mtproto.TL) {
 	// Process users
-	for _, user := range users {
-		user, ok := user.(mtproto.TL_user)
+	for _, it := range users {
+		user, ok := it.(mtproto.TL_user)
 		if !ok {
 			// TODO: Debug logs
-			fmt.Printf("Wrong user type: %T\n", user)
+			fmt.Printf("Wrong user type: %T\n", it)
 		}
 		cli.users[user.Id] = user
 	}
 	// Process chats
-	for _, chat := range chats {
-		chat, ok := chat.(mtproto.TL_chat)
-		if !ok {
-			fmt.Printf("Wrong  chat type: %T\n", chat)
+	for _, it := range chats {
+		switch it.(type) {
+		case mtproto.TL_channel:
+			channel := it.(mtproto.TL_channel)
+			cli.channels[channel.Id] = channel
+		case mtproto.TL_chat:
+			chat := it.(mtproto.TL_chat)
+			cli.chats[chat.Id] = chat
+		default:
+			fmt.Printf("Wrong type: %T\n", it)
 		}
-		cli.chats[chat.Id] = chat
 	}
 	// Process messages
 	for _, message := range messages {
