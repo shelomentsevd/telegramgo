@@ -457,7 +457,7 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 		if err != nil {
 			return fmt.Errorf("Wrong arguments: %s isn't a number", args[0])
 		}
-		update, err := cli.mtproto.MessagesSendMessage(false, false, false, true, mtproto.TL_inputPeerChat{int32(id)}, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
+		update, err := cli.mtproto.MessagesSendMessage(false, false, false, true, mtproto.TL_inputPeerChat{Chat_id: int32(id)}, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
 		cli.parseUpdate(*update)
 	case "help":
 		help()
