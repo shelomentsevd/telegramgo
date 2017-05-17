@@ -223,8 +223,7 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 		from := message.From_id
 		userFrom, found := cli.users[from]
 		if !found {
-			info := fmt.Sprintf("Can't find user with id: %d", from)
-			logger.Info(info)
+			logger.Info("Can't find user with id: %d", from)
 			senderName = fmt.Sprintf("%d unknow user", from)
 		}
 		senderName = nickname(userFrom)
@@ -237,8 +236,7 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 			peerUser := toPeer.(mtproto.TL_peerUser)
 			user, found := cli.users[peerUser.User_id]
 			if !found {
-				info := fmt.Sprintf("Can't find user with id: %d", peerUser.User_id)
-				logger.Info(info)
+				logger.Info("Can't find user with id: %d", peerUser.User_id)
 				// TODO: Get information about user from telegram server
 			}
 			peerName := nickname(user)
@@ -248,8 +246,7 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 			peerChat := toPeer.(mtproto.TL_peerChat)
 			chat, found := cli.chats[peerChat.Chat_id]
 			if !found {
-				info := fmt.Sprintf("Can't find chat with id: %d", peerChat.Chat_id)
-				logger.Info(info)
+				logger.Info("Can't find chat with id: %d", peerChat.Chat_id)
 			}
 			message := fmt.Sprintf("%s %d %s in %s(%d): %s", date, message.Id, senderName, chat.Title, chat.Id, message.Message)
 			fmt.Println(message)
@@ -257,19 +254,16 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 			peerChannel := toPeer.(mtproto.TL_peerChannel)
 			channel, found := cli.channels[peerChannel.Channel_id]
 			if !found {
-				info := fmt.Sprintf("Can't find channel with id: %d", peerChannel.Channel_id)
-				logger.Info(info)
+				logger.Info("Can't find channel with id: %d", peerChannel.Channel_id)
 			}
 			message := fmt.Sprintf("%s %d %s in %s(%d): %s", date, message.Id, senderName, channel.Title, channel.Id, message.Message)
 			fmt.Println(message)
 		default:
-			info := fmt.Sprintf("Unknown peer type: %T", toPeer)
-			logger.Info(info)
+			logger.Info("Unknown peer type: %T", toPeer)
 			logger.LogStruct(toPeer)
 		}
 	default:
-		info := fmt.Sprintf("Unknown message type: %T", message)
-		logger.Info(info)
+		logger.Info("Unknown message type: %T", message)
 		logger.LogStruct(message)
 	}
 }
@@ -280,8 +274,7 @@ func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []
 	for _, it := range users {
 		user, ok := it.(mtproto.TL_user)
 		if !ok {
-			// TODO: Debug logs
-			fmt.Printf("Wrong user type: %T\n", it)
+			logger.Info("Wrong user type: %T\n", it)
 		}
 		cli.users[user.Id] = user
 	}
@@ -310,9 +303,7 @@ func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []
 		case mtproto.TL_updateEditMessage:
 		case mtproto.TL_updateEditChannelMessage:
 		default:
-			// TODO: Debug only
-			log := fmt.Sprintf("Update type: %T\n", update)
-			logger.Info(log)
+			logger.Info("Update type: %T\n", update)
 			logger.LogStruct(update)
 		}
 	}

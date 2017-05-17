@@ -42,7 +42,8 @@ func LogStruct(i interface{}) {
 	fileLog.WriteString(log)
 }
 
-func Info(str string) {
+func Info(format string, a ...interface{}) {
+	str := fmt.Sprintf(format, a...)
 	log := fmt.Sprintf("%s\nINFO:%s\n", function(), str)
 	fileLog.WriteString(log)
 }

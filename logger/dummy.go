@@ -4,4 +4,4 @@ package logger
 
 func LogStruct(i interface{}) {}
 func Error(err error) {}
-func Info(str string) {}
+func Info(format string, a ...interface{}) {}
