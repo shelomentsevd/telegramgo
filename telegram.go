@@ -114,6 +114,26 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	return nil
 }
 
+// Load contacts to users map
+func (cli *TelegramCLI) LoadContacts() error {
+	tl, err := cli.mtproto.ContactsGetContacts("")
+	if err != nil {
+		return err
+	}
+	list, ok := (*tl).(mtproto.TL_contacts_contacts)
+	if !ok {
+		return fmt.Errorf("RPC: %#v", tl)
+	}
+
+	for _, v := range list.Users {
+		if v, ok := v.(mtproto.TL_user); ok {
+			cli.users[v.Id] = v
+		}
+	}
+
+	return nil
+}
+
 // Prints information about current user
 func (cli *TelegramCLI) CurrentUser() error {
 	userFull, err := cli.mtproto.UsersGetFullUsers(mtproto.TL_inputUserSelf{})
@@ -464,7 +484,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	// Initialization
+	// LoadContacts
 	mtproto, err := mtproto.NewMTProto(false, telegramAddress, os.Getenv("HOME")+"/.telegramgo", *configuration)
 	if err != nil {
 		logger.Error(err)
@@ -489,6 +509,11 @@ func main() {
 			logger.Error(err)
 			os.Exit(2)
 		}
+	}
+	if err := telegramCLI.LoadContacts(); err != nil {
+		logger.Info("Failed to load contacts")
+		logger.Error(err)
+		os.Exit(2)
 	}
 	// Show help first time
 	help()
