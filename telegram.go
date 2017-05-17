@@ -49,7 +49,8 @@ func help() {
 	fmt.Println("Available commands:")
 	fmt.Println("\\me - Shows information about current account")
 	fmt.Println("\\contacts - Shows contacts list")
-	fmt.Println("\\msg <id> <message> - Sends message to <id>")
+	fmt.Println("\\umsg <id> <message> - Sends message to user with <id>")
+	fmt.Println("\\cmsg <id> <message> - Sends message to chat with <id>")
 	fmt.Println("\\help - Shows this message")
 	fmt.Println("\\quit - Quit")
 }
@@ -353,13 +354,6 @@ func (cli *TelegramCLI) processUpdates() {
 	}
 }
 
-// Returns peer from peerList
-func (cli *TelegramCLI) FindPeer(id int32) mtproto.TL {
-	var peer mtproto.TL
-	// TODO: Write search
-	return peer
-}
-
 // Print contact list
 func (cli *TelegramCLI) Contacts() error {
 	tl, err := cli.mtproto.ContactsGetContacts("")
@@ -410,7 +404,7 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 		if err := cli.Contacts(); err != nil {
 			return err
 		}
-	case "msg":
+	case "umsg":
 		if command.Arguments == "" {
 			return errors.New("Not enough arguments: peer id and msg required")
 		}
@@ -422,9 +416,28 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 		if err != nil {
 			return fmt.Errorf("Wrong arguments: %s isn't a number", args[0])
 		}
-		var peer mtproto.TL
-		peer = cli.FindPeer(int32(id))
-		update, err := cli.mtproto.MessagesSendMessage(false, false, false, true, peer, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
+		user, found := cli.users[int32(id)]
+		if !found {
+			info := fmt.Sprintf("Can't find user with id: %d", id)
+			fmt.Println(info)
+			logger.Info(info)
+			return nil
+		}
+		update, err := cli.mtproto.MessagesSendMessage(false, false, false, true, mtproto.TL_inputPeerUser{User_id: user.Id, Access_hash: user.Access_hash}, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
+		cli.parseUpdate(*update)
+	case "cmsg":
+		if command.Arguments == "" {
+			return errors.New("Not enough arguments: peer id and msg required")
+		}
+		args := strings.SplitN(command.Arguments, " ", 2)
+		if len(args) < 2 {
+			return errors.New("Not enough arguments: peer id and msg required")
+		}
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			return fmt.Errorf("Wrong arguments: %s isn't a number", args[0])
+		}
+		update, err := cli.mtproto.MessagesSendMessage(false, false, false, true, mtproto.TL_inputPeerChat{int32(id)}, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
 		cli.parseUpdate(*update)
 	case "help":
 		help()
