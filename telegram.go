@@ -465,6 +465,7 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 		cli.Stop()
 		cli.Disconnect()
 	default:
+		fmt.Println("Unknow command. Try \\help to see all commands")
 		return errors.New("Unknow command")
 	}
 	return nil
