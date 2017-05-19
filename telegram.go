@@ -301,24 +301,15 @@ func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []
 		case mtproto.TL_updateNewMessage:
 			update := it.(mtproto.TL_updateNewMessage)
 			cli.parseMessage(update.Message)
-			cli.state.Pts = update.Pts
-			// I'm not sure about this.
-			cli.state.Unread_count = update.Pts_count
 		case mtproto.TL_updateNewChannelMessage:
 			update := it.(mtproto.TL_updateNewChannelMessage)
 			cli.parseMessage(update.Message)
-			cli.state.Pts = update.Pts
-			cli.state.Unread_count = update.Pts_count
 		case mtproto.TL_updateEditMessage:
 			update := it.(mtproto.TL_updateEditMessage)
 			cli.parseMessage(update.Message)
-			cli.state.Pts = update.Pts
-			cli.state.Unread_count = update.Pts_count
 		case mtproto.TL_updateEditChannelMessage:
 			update := it.(mtproto.TL_updateNewChannelMessage)
 			cli.parseMessage(update.Message)
-			cli.state.Pts = update.Pts
-			cli.state.Unread_count = update.Pts_count
 		default:
 			logger.Info("Update type: %T\n", it)
 			logger.LogStruct(it)
