@@ -3,6 +3,8 @@
 Command-line interface for Telegram. Uses readline interface.
 
 # Build
+## Dependencies
+[MTProto](https://github.com/shelomentsevd/mtproto) - library for working with Telegram API
 ## Release
 make
 ## Debug
