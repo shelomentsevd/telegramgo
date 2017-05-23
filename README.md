@@ -19,5 +19,7 @@ Availables commands:
 * \cmsg <id> <message> - sends message to chat with <id>
 * \help - shows available commands
 * \quit - quit from program
+# Demo
+![](demo.gif)
 # License
 MIT
