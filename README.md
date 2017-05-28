@@ -60,6 +60,8 @@ chat#6e9c9bc7 id:int title:string photo:ChatPhoto participants_count:int date:in
 * https://github.com/sdidyk/mtproto - Отсюда я позаимствовал большую часть кода. Язык Go.
 * https://github.com/zerobias/telegram-mtproto - Библиотеки для JavaScript'a. 
 
-
+# Contacts
+* Email: shelomentsev@protonmail.com
+* Telegram: @shelomentsevd
 # License
 MIT
