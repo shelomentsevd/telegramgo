@@ -61,6 +61,7 @@ chat#6e9c9bc7 id:int title:string photo:ChatPhoto participants_count:int date:in
 * https://github.com/zerobias/telegram-mtproto - Библиотеки для JavaScript'a. 
 
 # Contacts
+Feel free to ping me in Telegram or drop me email. If you are in Moscow, feel free to invite me for coffee or quick chat in your office ;)))
 * Email: shelomentsev@protonmail.com
 * Telegram: @shelomentsevd
 # License
