@@ -1,7 +1,7 @@
 # Telegram messenger CLI
 
 Command-line interface for Telegram. Uses readline interface.
-
+![](demo.gif)
 # Build
 ## Dependencies
 [MTProto](https://github.com/shelomentsevd/mtproto) - library for working with Telegram API
@@ -19,12 +19,10 @@ Availables commands:
 * \cmsg <id> <message> - sends message to chat with <id>
 * \help - shows available commands
 * \quit - quit from program
-# Demo
-![](demo.gif)
 # English Documentation
 * coming shortly
 
-#Note for Russian Speaking users
+# Note for Russian Speaking users
 
 # Библиотека для работы с Telegram API на Go
 В отличии от API для создания ботов, Telegram API для мессенджеров почти не имеет актуальных библиотек. Как на других языках, так и на Go.
