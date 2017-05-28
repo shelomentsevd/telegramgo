@@ -24,14 +24,14 @@ Availables commands:
 
 # Note for Russian Speaking users
 
-# Библиотека для работы с Telegram API на Go
+## Библиотека для работы с Telegram API на Go
 В отличии от API для создания ботов, Telegram API для мессенджеров почти не имеет актуальных библиотек. Как на других языках, так и на Go.
 
 Если вам надо написать архиватор сообщений из супергрупп и каналов Telegram'a,вы попали в правильное место. 
 
-## Библиотека
+### Библиотека
 Большая часть кода позаимствована из http://github.com/sdidyk/mtproto . 
-## Отличия:
+### Отличия:
 * последняя версия Telegram API
 * автоматическое переподключение к серверу после сброса соединения
 * возможность сериализовать данные полученные из Telegram'a в JSON
@@ -40,7 +40,7 @@ Availables commands:
 Большая часть кода генерируется спомощью простого скрипта на Python, который выполняет трансляцию из TL(о нем ниже) в Go. В дальнейшем, будут генерироваться не только структуры на Go и методы их сериализации/десереализации из бинарного кода, а ещё функции для вызова процедур API. 
 https://github.com/shelomentsevd/mtproto
 
-## О Telegram API и проблемах с документацией
+### О Telegram API и проблемах с документацией
 Telegram для обмена данными между сервером и клиентом использует RPC протокол, который описывается через TL-схему. Язык TL(Type Language or Time Limit) описывает как данные будут сериализоваться в бинарный код или десериализовываться из него. 
 Например вот так выглядит описание чата из 23-ей версии схемы Telegram API:
 ```
@@ -51,14 +51,14 @@ chat#6e9c9bc7 id:int title:string photo:ChatPhoto participants_count:int date:in
 К сожалению, на core.telegram.org вы не найдете актуальной версии TL-схемы Telegram API и документации к ней, а только описание языка и работы самого протокола.
 
 ### Язык
-https://core.telegram.org/mtproto/TL - Описание языка TL
-https://github.com/telegramdesktop/tdesktop/blob/dev/Telegram/Resources/scheme.tl - самая свежая версия TL-схемы можно найти здесь.
+* https://core.telegram.org/mtproto/TL - Описание языка TL
+* https://github.com/telegramdesktop/tdesktop/blob/dev/Telegram/Resources/scheme.tl - самая свежая версия TL-схемы можно найти здесь.
 ### Примеры работы с Telegram API
-https://github.com/telegramdesktop/tdesktop - Десктопный клиент Telegram'a. Язык C++. 
-https://github.com/DrKLO/Telegram - Android клиент. Часть кода работы с API написана на С++, часть на Java.
-https://github.com/QtGram/LibQTelegram - QT библиотека для работы с Telegram API. Язык C++.
-https://github.com/sdidyk/mtproto - Отсюда я позаимствовал большую часть кода. Язык Go.
-https://github.com/zerobias/telegram-mtproto - Библиотеки для JavaScript'a. 
+* https://github.com/telegramdesktop/tdesktop - Десктопный клиент Telegram'a. Язык C++. 
+* https://github.com/DrKLO/Telegram - Android клиент. Часть кода работы с API написана на С++, часть на Java.
+* https://github.com/QtGram/LibQTelegram - QT библиотека для работы с Telegram API. Язык C++.
+* https://github.com/sdidyk/mtproto - Отсюда я позаимствовал большую часть кода. Язык Go.
+* https://github.com/zerobias/telegram-mtproto - Библиотеки для JavaScript'a. 
 
 
 # License
