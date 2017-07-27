@@ -1,4 +1,7 @@
-all: 
-	go build -i -v -o telegram telegram.go utils.go
+all: install 
+install:
+	@ go install
+run:
+	@ go run main.go
 clean: 
-	@rm telegram
+	@ rm telegram
