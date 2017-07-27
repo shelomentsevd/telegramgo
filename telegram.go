@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"mtproto"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"telegramgo/logger"
 	"time"
 )
 
@@ -108,8 +108,8 @@ func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	cli.users[userSelf.Id] = userSelf
 	message := fmt.Sprintf("Signed in: Id %d name <%s @%s %s>\n", userSelf.Id, userSelf.First_name, userSelf.Username, userSelf.Last_name)
 	fmt.Print(message)
-	logger.Info(message)
-	logger.LogStruct(userSelf)
+	log.Println(message)
+	log.Println(userSelf)
 
 	return nil
 }
@@ -146,8 +146,8 @@ func (cli *TelegramCLI) CurrentUser() error {
 
 	message := fmt.Sprintf("You are logged in as: %s @%s %s\nId: %d\nPhone: %s\n", user.First_name, user.Username, user.Last_name, user.Id, user.Phone)
 	fmt.Print(message)
-	logger.Info(message)
-	logger.LogStruct(*userFull)
+	log.Println(message)
+	log.Println(*userFull)
 
 	return nil
 }
@@ -158,7 +158,7 @@ func (cli *TelegramCLI) Connect() error {
 		return err
 	}
 	cli.connected = true
-	logger.Info("Connected to telegram server")
+	log.Println("Connected to telegram server")
 	return nil
 }
 
@@ -168,7 +168,7 @@ func (cli *TelegramCLI) Disconnect() error {
 		return err
 	}
 	cli.connected = false
-	logger.Info("Disconnected from telegram server")
+	log.Println("Disconnected from telegram server")
 	return nil
 }
 
@@ -185,27 +185,27 @@ func (cli *TelegramCLI) Read() {
 // Run telegram cli
 func (cli *TelegramCLI) Run() error {
 	// Update cycle
-	logger.Info("CLI Update cycle started")
+	log.Println("CLI Update cycle started")
 UpdateCycle:
 	for {
 		select {
 		case <-cli.read:
 			command := cli.readCommand()
-			logger.Info("User input: ")
-			logger.LogStruct(*command)
+			log.Println("User input: ")
+			log.Println(*command)
 			err := cli.RunCommand(command)
 			if err != nil {
-				logger.Error(err)
+				log.Println(err)
 			}
 		case <-cli.stop:
-			logger.Info("Update cycle stoped")
+			log.Println("Update cycle stoped")
 			break UpdateCycle
 		case <-time.After(updatePeriod):
-			logger.Info("Trying to get update from server...")
+			log.Println("Trying to get update from server...")
 			cli.processUpdates()
 		}
 	}
-	logger.Info("CLI Update cycle finished")
+	log.Println("CLI Update cycle finished")
 	return nil
 }
 
@@ -213,17 +213,17 @@ UpdateCycle:
 func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 	switch message.(type) {
 	case mtproto.TL_messageEmpty:
-		logger.Info("Empty message")
-		logger.LogStruct(message)
+		log.Println("Empty message")
+		log.Println(message)
 	case mtproto.TL_message:
-		logger.Info("Got new message")
-		logger.LogStruct(message)
+		log.Println("Got new message")
+		log.Println(message)
 		message, _ := message.(mtproto.TL_message)
 		var senderName string
 		from := message.From_id
 		userFrom, found := cli.users[from]
 		if !found {
-			logger.Info("Can't find user with id: %d", from)
+			log.Printf("Can't find user with id: %d", from)
 			senderName = fmt.Sprintf("%d unknow user", from)
 		}
 		senderName = nickname(userFrom)
@@ -236,7 +236,7 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 			peerUser := toPeer.(mtproto.TL_peerUser)
 			user, found := cli.users[peerUser.User_id]
 			if !found {
-				logger.Info("Can't find user with id: %d", peerUser.User_id)
+				log.Printf("Can't find user with id: %d", peerUser.User_id)
 				// TODO: Get information about user from telegram server
 			}
 			peerName := nickname(user)
@@ -246,7 +246,7 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 			peerChat := toPeer.(mtproto.TL_peerChat)
 			chat, found := cli.chats[peerChat.Chat_id]
 			if !found {
-				logger.Info("Can't find chat with id: %d", peerChat.Chat_id)
+				log.Printf("Can't find chat with id: %d", peerChat.Chat_id)
 			}
 			message := fmt.Sprintf("%s %d %s in %s(%d): %s", date, message.Id, senderName, chat.Title, chat.Id, message.Message)
 			fmt.Println(message)
@@ -254,17 +254,17 @@ func (cli *TelegramCLI) parseMessage(message mtproto.TL) {
 			peerChannel := toPeer.(mtproto.TL_peerChannel)
 			channel, found := cli.channels[peerChannel.Channel_id]
 			if !found {
-				logger.Info("Can't find channel with id: %d", peerChannel.Channel_id)
+				log.Printf("Can't find channel with id: %d", peerChannel.Channel_id)
 			}
 			message := fmt.Sprintf("%s %d %s in %s(%d): %s", date, message.Id, senderName, channel.Title, channel.Id, message.Message)
 			fmt.Println(message)
 		default:
-			logger.Info("Unknown peer type: %T", toPeer)
-			logger.LogStruct(toPeer)
+			log.Printf("Unknown peer type: %T", toPeer)
+			log.Println(toPeer)
 		}
 	default:
-		logger.Info("Unknown message type: %T", message)
-		logger.LogStruct(message)
+		log.Printf("Unknown message type: %T", message)
+		log.Println(message)
 	}
 }
 
@@ -274,7 +274,7 @@ func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []
 	for _, it := range users {
 		user, ok := it.(mtproto.TL_user)
 		if !ok {
-			logger.Info("Wrong user type: %T\n", it)
+			log.Println("Wrong user type: %T\n", it)
 		}
 		cli.users[user.Id] = user
 	}
@@ -311,8 +311,8 @@ func (cli *TelegramCLI) parseUpdateDifference(users, messages, chats, updates []
 			update := it.(mtproto.TL_updateNewChannelMessage)
 			cli.parseMessage(update.Message)
 		default:
-			logger.Info("Update type: %T\n", it)
-			logger.LogStruct(it)
+			log.Printf("Update type: %T\n", it)
+			log.Println(it)
 		}
 	}
 }
@@ -344,30 +344,28 @@ func (cli *TelegramCLI) parseUpdate(update mtproto.TL) {
 func (cli *TelegramCLI) processUpdates() {
 	if cli.connected {
 		if cli.state == nil {
-			logger.Info("cli.state is nil. Trying to get actual state...")
+			log.Println("cli.state is nil. Trying to get actual state...")
 			tl, err := cli.mtproto.UpdatesGetState()
 			if err != nil {
-				logger.Error(err)
-				os.Exit(2)
+				log.Fatal(err)
 			}
-			logger.Info("Got something")
-			logger.LogStruct(*tl)
+			log.Println("Got something")
+			log.Println(*tl)
 			state, ok := (*tl).(mtproto.TL_updates_state)
 			if !ok {
 				err := fmt.Errorf("Failed to get current state: API returns wrong type: %T", *tl)
-				logger.Error(err)
-				os.Exit(2)
+				log.Fatal(err)
 			}
 			cli.state = &state
 			return
 		}
 		tl, err := cli.mtproto.UpdatesGetDifference(cli.state.Pts, cli.state.Unread_count, cli.state.Date, cli.state.Qts)
 		if err != nil {
-			logger.Error(err)
+			log.Println(err)
 			return
 		}
-		logger.Info("Got new update")
-		logger.LogStruct(*tl)
+		log.Println("Got new update")
+		log.Println(*tl)
 		cli.parseUpdate(*tl)
 		return
 	}
@@ -439,7 +437,6 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 		if !found {
 			info := fmt.Sprintf("Can't find user with id: %d", id)
 			fmt.Println(info)
-			logger.Info(info)
 			return nil
 		}
 		update, err := cli.mtproto.MessagesSendMessage(false, false, false, true, mtproto.TL_inputPeerUser{User_id: user.Id, Access_hash: user.Access_hash}, 0, args[1], rand.Int63(), mtproto.TL_null{}, nil)
@@ -471,7 +468,14 @@ func (cli *TelegramCLI) RunCommand(command *Command) error {
 }
 
 func main() {
-	logger.Info("Program started")
+	logfile, err := os.OpenFile("logfile.txt", os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer logfile.Close()
+
+	log.SetOutput(logfile)
+	log.Println("Program started")
 	// Application configuration
 	configuration, err := mtproto.NewConfiguration(41994,
 		"269069e15c81241f5670c397941016a2",
@@ -480,24 +484,20 @@ func main() {
 		"",
 		"")
 	if err != nil {
-		logger.Error(err)
-		os.Exit(2)
+		log.Fatal(err)
 	}
 
 	// LoadContacts
 	mtproto, err := mtproto.NewMTProto(false, telegramAddress, os.Getenv("HOME")+"/.telegramgo", *configuration)
 	if err != nil {
-		logger.Error(err)
-		os.Exit(2)
+		log.Fatal(err)
 	}
 	telegramCLI, err := NewTelegramCLI(mtproto)
 	if err != nil {
-		logger.Error(err)
-		os.Exit(2)
+		log.Fatal(err)
 	}
 	if err = telegramCLI.Connect(); err != nil {
-		logger.Error(err)
-		os.Exit(2)
+		log.Fatal(err)
 	}
 	fmt.Println("Welcome to telegram CLI")
 	if err := telegramCLI.CurrentUser(); err != nil {
@@ -506,14 +506,11 @@ func main() {
 		fmt.Scanln(&phonenumber)
 		err := telegramCLI.Authorization(phonenumber)
 		if err != nil {
-			logger.Error(err)
-			os.Exit(2)
+			log.Fatal(err)
 		}
 	}
 	if err := telegramCLI.LoadContacts(); err != nil {
-		logger.Info("Failed to load contacts")
-		logger.Error(err)
-		os.Exit(2)
+		log.Fatalf("Failed to load contacts: %s", err)
 	}
 	// Show help first time
 	help()
@@ -534,7 +531,7 @@ func main() {
 
 	err = telegramCLI.Run()
 	if err != nil {
-		logger.Error(err)
+		log.Println(err)
 		fmt.Println("Telegram CLI exits with error: ", err)
 	}
 	// Stop SignalProcessing goroutine
