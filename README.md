@@ -1,7 +1,7 @@
 # Telegram messenger CLI
 
 Command-line interface for Telegram. Uses readline interface.
-![](demo.gif)
+![](http://i.imgur.com/mrMHoXL.gif)
 # Build
 ## Dependencies
 [MTProto](https://github.com/shelomentsevd/mtproto) - library for working with Telegram API
