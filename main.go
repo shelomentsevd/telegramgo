@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"mtproto"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/shelomentsevd/mtproto"
 )
 
 const telegramAddress = "149.154.167.50:443"
@@ -505,7 +506,7 @@ func main() {
 	}
 
 	// LoadContacts
-	mtproto, err := mtproto.NewMTProto(false, telegramAddress, os.Getenv("HOME")+"/.telegramgo", *configuration)
+	mtproto, err := mtproto.NewMTProto(false, telegramAddress, false, os.Getenv("HOME")+"/.telegramgo", *configuration)
 	if err != nil {
 		log.Fatal(err)
 	}
