@@ -16,7 +16,6 @@ import (
 	"github.com/shelomentsevd/mtproto"
 )
 
-const telegramAddress = "149.154.167.50:443"
 const updatePeriod = time.Second * 2
 
 type Command struct {
@@ -494,19 +493,9 @@ func main() {
 
 	log.SetOutput(logfile)
 	log.Println("Program started")
-	// Application configuration
-	configuration, err := mtproto.NewConfiguration(41994,
-		"269069e15c81241f5670c397941016a2",
-		"0.0.1",
-		"",
-		"",
-		"")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// LoadContacts
-	mtproto, err := mtproto.NewMTProto(false, telegramAddress, false, os.Getenv("HOME")+"/.telegramgo", *configuration)
+	mtproto, err := mtproto.NewMTProto(41994, "269069e15c81241f5670c397941016a2", mtproto.WithAuthFile(os.Getenv("HOME")+"/.telegramgo", false))
 	if err != nil {
 		log.Fatal(err)
 	}
