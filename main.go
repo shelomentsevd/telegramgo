@@ -100,6 +100,69 @@ func NewTelegramCLI(pMTProto *mtproto.MTProto) (*TelegramCLI, error) {
 	return cli, nil
 }
 
+func (cli *TelegramCLI) IsPhoneRegistered(phonenumber string) (bool, error) {
+	if phonenumber == "" {
+		return false, fmt.Errorf("Phone number is empty")
+	}
+
+	checkedPhone, err := cli.mtproto.AuthCheckPhone(phonenumber)
+	if err != nil {
+		return false, err
+	}
+
+	var registered bool
+	if registered, err =  mtproto.ToBool(checkedPhone.Phone_registered); err != nil {
+		return false, err
+	}
+
+	return registered, nil
+}
+
+func (cli *TelegramCLI) Registration(phonenumber string) error {
+	if phonenumber == "" {
+		return fmt.Errorf("Phone number is empty")
+	}
+	sentCode, err := cli.mtproto.AuthSendCode(phonenumber)
+	if err != nil {
+		return err
+	}
+
+	if sentCode.Phone_registered {
+		return fmt.Errorf("Phone number already registered")
+	}
+
+	var code, firstName, lastName string
+	fmt.Printf("Enter code: ")
+	fmt.Scanf("%s", &code)
+
+	fmt.Printf("Enter first name: ")
+	fmt.Scanf("%s", &firstName)
+
+	fmt.Printf("Enter last name: ")
+	fmt.Scanf("%s", &lastName)
+
+	auth, err := cli.mtproto.AuthSignUp(
+		phonenumber,
+		sentCode.Phone_code_hash,
+		code,
+		firstName,
+		lastName,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	userSelf := auth.User.(mtproto.TL_user)
+	cli.users[userSelf.Id] = userSelf
+	message := fmt.Sprintf("Signed in: Id %d name <%s @%s %s>\n", userSelf.Id, userSelf.First_name, userSelf.Username, userSelf.Last_name)
+	fmt.Print(message)
+	log.Println(message)
+	log.Println(userSelf)
+
+	return nil
+}
+
 func (cli *TelegramCLI) Authorization(phonenumber string) error {
 	if phonenumber == "" {
 		return fmt.Errorf("Phone number is empty")
@@ -511,9 +574,21 @@ func main() {
 		var phonenumber string
 		fmt.Println("Enter phonenumber number below: ")
 		fmt.Scanln(&phonenumber)
-		err := telegramCLI.Authorization(phonenumber)
+		registered, err := telegramCLI.IsPhoneRegistered(phonenumber)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if registered {
+			err := telegramCLI.Authorization(phonenumber)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			err := telegramCLI.Registration(phonenumber)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 	if err := telegramCLI.LoadContacts(); err != nil {
