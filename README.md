@@ -52,7 +52,7 @@ chat#6e9c9bc7 id:int title:string photo:ChatPhoto participants_count:int date:in
 
 ### Язык
 * https://core.telegram.org/mtproto/TL - Описание языка TL
-* https://github.com/telegramdesktop/tdesktop/blob/dev/Telegram/Resources/scheme.tl - самая свежая версия TL-схемы можно найти здесь.
+* https://github.com/telegramdesktop/tdesktop/tree/dev/Telegram/Resources/tl - самая свежая версия TL-схемы можно найти здесь.
 ### Примеры работы с Telegram API
 * https://github.com/telegramdesktop/tdesktop - Десктопный клиент Telegram'a. Язык C++. 
 * https://github.com/DrKLO/Telegram - Android клиент. Часть кода работы с API написана на С++, часть на Java.
